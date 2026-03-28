@@ -1,0 +1,21 @@
+{
+  "name": "KiroAI: Universal Assistant",
+  "short_name": "KiroAI",
+  "description": "A powerful, multi-modal AI workspace for creative writing, coding, image generation, and complex problem solving.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0502",
+  "theme_color": "#ff4e00",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/kiroai/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/kiroai/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

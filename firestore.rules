@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //   - photoURL: string (optional)
+    //   - rank: string (required, enum: ['normal', 'pro', 'premium', 'owner'])
+    //   - messageCount: number (optional)
+    //   - lastRankUpdate: timestamp (optional)
+    //
+    // Collection: settings
+    // Document ID: global
+    // Fields:
+    //   - proPrice: number (required)
+    //   - premiumPrice: number (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rank == 'owner' ||
+          (request.auth.token.email == "markcvakgd@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'rank']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.rank in ['normal', 'pro', 'premium', 'owner'] &&
+             (!('requestedRank' in data) || data.requestedRank == null || data.requestedRank in ['pro', 'premium']) &&
+             (!('messageCount' in data) || data.messageCount is number) &&
+             (!('displayName' in data) || data.displayName is string) &&
+             (!('photoURL' in data) || data.photoURL is string) &&
+             (!('lastActive' in data) || data.lastActive is timestamp) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['title', 'createdAt', 'updatedAt']) &&
+             data.title is string &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'role', 'timestamp']) &&
+             data.text is string &&
+             data.role in ['user', 'assistant'] &&
+             data.timestamp is timestamp &&
+             (!('imageUrl' in data) || data.imageUrl is string);
+    }
+
+    function isValidSettings(data) {
+      return data.keys().hasAll(['proPrice', 'premiumPrice']) &&
+             data.proPrice is number &&
+             data.premiumPrice is number;
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      
+      allow create: if isAuthenticated() && 
+                      isOwner(userId) && 
+                      isValidUser(request.resource.data) &&
+                      (request.resource.data.rank == 'normal' || (request.resource.data.rank == 'owner' && request.auth.token.email == "markcvakgd@gmail.com"));
+      
+      allow update: if isAuthenticated() && 
+                      isValidUser(request.resource.data) &&
+                      (
+                        isAdmin() || 
+                        (
+                          isOwner(userId) && 
+                          request.resource.data.rank == resource.data.rank &&
+                          // Allow updating messageCount, requestedRank, lastActive
+                          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messageCount', 'requestedRank', 'lastActive']))
+                        )
+                      );
+
+      match /sessions/{sessionId} {
+        allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+        allow create: if isAuthenticated() && isOwner(userId) && isValidSession(request.resource.data);
+        allow update: if isAuthenticated() && isOwner(userId) && isValidSession(request.resource.data);
+        allow delete: if isAuthenticated() && isOwner(userId);
+
+        match /messages/{messageId} {
+          allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+          allow create: if isAuthenticated() && isOwner(userId) && isValidMessage(request.resource.data);
+        }
+      }
+    }
+
+    match /settings/global {
+      allow read: if true;
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "KiroAI: Universal Assistant",
+  "description": "A powerful, multi-modal AI workspace for creative writing, coding, image generation, and complex problem solving.",
+  "requestFramePermissions": ["camera", "microphone"]
+}

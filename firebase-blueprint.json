@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user ranking and usage data.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "rank": { "type": "string", "enum": ["normal", "pro", "premium", "owner"] },
+        "requestedRank": { "type": "string", "enum": ["pro", "premium"], "nullable": true },
+        "messageCount": { "type": "integer" },
+        "lastActive": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "rank"]
+    },
+    "Settings": {
+      "title": "App Settings",
+      "description": "Global prices and configurations.",
+      "type": "object",
+      "properties": {
+        "proPrice": { "type": "number" },
+        "premiumPrice": { "type": "number" }
+      },
+      "required": ["proPrice", "premiumPrice"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document."
+    },
+    "/settings/global": {
+      "schema": "Settings",
+      "description": "Global settings document."
+    }
+  }
+}
